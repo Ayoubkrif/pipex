@@ -6,7 +6,7 @@
 /*   By: ayoub <ayoub@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/02 14:41:44 by ayoub             #+#    #+#             */
-/*   Updated: 2024/11/13 07:59:25 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/21 12:04:03 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ static void	ft_join(char const *s1, char const *s2, char **r)
 	(*r)[i + j] = '\0';
 }
 
-char	*ft_strjoin(char const *s1, char const *s2)
+char	*ft_strjoin(char *s1, char *s2, int free_s1, int free_s2)
 {
 	char	*r;
 	size_t	i;
@@ -48,5 +48,9 @@ char	*ft_strjoin(char const *s1, char const *s2)
 	if (!r)
 		return (NULL);
 	ft_join(s1, s2, &r);
+	if (free_s1)
+		free(s1);
+	if (free_s2)
+		free(s2);
 	return (r);
 }

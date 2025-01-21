@@ -6,7 +6,7 @@
 /*   By: ayoub <ayoub@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/02 14:48:37 by ayoub             #+#    #+#             */
-/*   Updated: 2024/11/14 12:32:34 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/21 12:04:32 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ int		ft_memcmp(const void *s1, const void *s2, size_t n);
 void	*ft_calloc(size_t nmemb, size_t size);
 char	*ft_strdup(const char *s);
 char	*ft_substr(char const *s, unsigned int start, size_t len);
-char	*ft_strjoin(char const *s1, char const *s2);
+char	*ft_strjoin(char *s1, char *s2, int free_s1, int free_s2);
 char	*ft_strtrim(char const *s1, char const *set);
 char	*ft_strdup(const char *s);
 char	**ft_split(const char *s, char c);
