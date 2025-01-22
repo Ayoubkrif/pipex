@@ -11,11 +11,17 @@
 # include <sys/types.h>
 # include "libft/libft.h"
 
-typedef struct s_var{
-	pid_t	pid[100];
+typedef struct s_pipex{
+	pid_t	*pid;
+	char	*infile;
+	char	*outfile;
 	int		pipe_fd[2];
+	int		infile_fd;
+	int		outfile_fd;
+	int		last_pipe_fd;
 	int		in_fd;
 	int		out_fd;
-}t_var;
+	int		n_argcmd;
+}t_pipex;
 
 #endif

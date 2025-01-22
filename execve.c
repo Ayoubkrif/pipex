@@ -6,13 +6,43 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 12:11:14 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/21 15:57:31 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/22 19:54:04 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft/libft.h"
 #include "pipex.h"
+#include <fcntl.h>
 #include <unistd.h>
+
+static void	fall(char **dest)
+{
+	int	i;
+
+	i = 0;
+	if (dest == NULL)
+		return ;
+	while (dest[i])
+	{
+		free(dest[i]);
+		i++;
+	}
+	free(dest);
+}
+
+int	wait_all_pids(pid_t	*pids, int n)
+{
+	int	i;
+	int	status;
+
+	i = 0;
+	while (i < n)
+	{
+		waitpid(pids[i], &status, 0);
+		i++;
+	}
+	return (status);
+}
 
 void	malloc_error(void)
 {
@@ -42,20 +72,6 @@ char	**get_possible_paths(char **env)
 	return (possible_paths);
 }
 
-static void	fall(char **dest)
-{
-	if (dest == NULL)
-		return ;
-	while (*dest)
-	{
-		printf("%s\n",*dest);
-		free(*dest);
-		dest++;
-	}
-	printf("%s\n",*dest);
-	free(dest);
-}
-
 char	**get_cmd(char *str, char **env)
 {
 	char	**cmd;
@@ -72,17 +88,18 @@ char	**get_cmd(char *str, char **env)
 		return (fall(path), cmd);
 	while (path[i])
 	{
-		ret = ft_strjoin(path[i], *cmd, 0, 1);
+		ret = ft_strjoin(path[i], *cmd, 0, 0);
 		if (!access(ret, X_OK))
 		{
+			free(*cmd);
 			*cmd = ret;
 			return (fall(path), cmd);
 		}
-//		free(ret);
+		free(ret);
 		i++;
 	}
-	//(fall(path), path = NULL);
-	//(fall(cmd), cmd = NULL);
+	(fall(path), path = NULL);
+	(fall(cmd), cmd = NULL);
 	return (perror("access"), NULL);
 }
 
@@ -91,84 +108,75 @@ void	exec_cmd(char *str, char **env)
 	char	**cmd;
 
 	cmd = get_cmd(str, env);
-	if (cmd)
-	{
-		while (*cmd)
-		{
-			printf("%s\n", *cmd);
-			cmd++;
-		}
-	}
-//	fall(cmd);
-	exit(0);
-	execve("/usr/bin/ls", cmd , env);
+	execve(*cmd, cmd, env);
 	perror("execve");
+	fall(cmd);
+	exit(0);
 }
 
-void	wait_all_pids(pid_t	*pids, int n)
+void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
+{
+	close(data.pipe_fd[0]);
+	if (n_cmd == 0) // sortie vers le pipe entree est le data.file
+	{
+		data.infile_fd = open(data.infile, O_RDONLY);
+		if (data.infile_fd == -1)
+			perror("open");
+		dup2(data.infile_fd, STDIN_FILENO);
+		close(data.infile_fd);
+        dup2(data.pipe_fd[1], STDOUT_FILENO);
+		close(data.pipe_fd[1]);
+	}
+	if (n_cmd == data.n_argcmd)
+	{
+        dup2(data.last_pipe_fd, STDIN_FILENO);
+		close(data.last_pipe_fd);
+		data.outfile_fd = open(data.outfile, O_WRONLY + O_CREAT + O_TRUNC, 0644);
+		if (data.outfile_fd == -1)
+			perror("open");
+		dup2(data.outfile_fd, STDOUT_FILENO);
+		close(data.outfile_fd);
+	}
+	else
+	{
+		dup2(data.last_pipe_fd, STDIN_FILENO);
+		close(data.last_pipe_fd);
+        dup2(data.pipe_fd[1], STDOUT_FILENO);
+		close(data.pipe_fd[1]);
+	}
+	exec_cmd(argv, env);
+}
+
+int	pipex(t_pipex data, char **argv, char **env)
 {
 	int	i;
 
 	i = 0;
-	while (i < n)
+	while (argv[i])
 	{
-		waitpid(pids[i], 0, 0);
+		data.pid[i] = fork();
+		pipe(data.pipe_fd);
+		if (data.pid[i])
+			child_process(data, argv[i], i + 1, env);
+		close(data.last_pipe_fd);
+		data.last_pipe_fd = data.pipe_fd[0];
+		close(data.pipe_fd[1]);
 		i++;
 	}
+	return (wait_all_pids(data.pid, i));
 }
 
-void	pipex(char **argv, char **env, int argc)
+int	main(int argc, char **argv, char **env)
 {
-	t_var	pids;
-	int		i;
+	t_pipex	data;
 
-	i = 2;
-	while (i < argc - 1)
-	{
-		if (i < argc - 2)
-			pipe(pids.pipe_fd);
-		pids.pid[i - 2] = fork();
-		if (pids.pid[i - 2] == 0)
-		{
-			exec_cmd(argv[i], env);
-		}
-		i++;
-	}
-	wait_all_pids(pids.pid, i - 2);
-}
-	/*if (pipe(pipe_fd) == -1)
-		return (perror("pipe :"));
-	file_fd[0] = open(argv[1], O_RDONLY);
-	if (file_fd[0] == -1)
-		return (perror("open infile:"));
-	file_fd[1] = open(argv[argc - 1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (file_fd[1] == -1)
-		return (perror("open outfile:"));
-	exec_cmd(argv[2], file_fd[0], pipe_fd[0], env);
-	exec_cmd(argv[3], pipe_fd[1], file_fd[1], env);
-	*/
-
-int	main(int a, char **arg, char **e)
-{
-	if (!e || a < 5)
+	argv++;
+	if (argc < 5)
 		return (1);
-	pipex(arg, e, a);
-	//pipex(arg, e, a);
-
-	/*while (*e && !ft_strnstr(*e, "PATH=", 5))
-		e++;
-	if (!ft_strnstr(*e, "PATH=", 5))
-		return (0);
-	path = ft_split(*e + 5, ':');
-	while (*path)
-	{
-		*path = ft_strjoin(*path, "/");
-		cmd = ft_strjoin(*path, c[1]);
-		printf("acces %d\n", access(cmd, X_OK));
-		if (access(cmd, X_OK) == -1)
-			perror("");
-		printf("%s\n", cmd);
-		path++;
-	}
-	printf("acces %d\n", access(c[1], X_OK));*/
+	data.infile = argv[0];
+	data.outfile = argv[argc - 2];
+	data.n_argcmd = argc - 2;
+	data.pid = malloc((argc - 2) * sizeof(pid_t));
+	argv++;
+	return (pipex(data, argv, env));
 }
