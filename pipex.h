@@ -12,16 +12,18 @@
 # include "libft/libft.h"
 
 typedef struct s_pipex{
-	pid_t	*pid;
 	char	*infile;
 	char	*outfile;
-	int		pipe_fd[2];
-	int		infile_fd;
-	int		outfile_fd;
-	int		last_pipe_fd;
+	char	here_doc;
+	int		current_pipe[2];
+	int		last_pipe;
 	int		in_fd;
 	int		out_fd;
 	int		n_argcmd;
 }t_pipex;
 
+# define FORK_FAILURE -1
+# define PIPE_FAILURE -1
+# define OPEN_FAILURE -1
+# define CHILD_PROCESS 0
 #endif
