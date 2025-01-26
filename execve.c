@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 12:11:14 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/26 12:24:58 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/26 22:44:39 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 static void	fall(char **dest)
@@ -63,6 +64,7 @@ void	malloc_error(void)
 char	**get_possible_paths(char **env)
 {
 	char	**possible_paths;
+	char	*temp;
 	int		i;
 
 	i = 0;
@@ -75,9 +77,10 @@ char	**get_possible_paths(char **env)
 		return (malloc_error(), NULL);
 	while (possible_paths[i])
 	{
-		possible_paths[i] = ft_strjoin(possible_paths[i], "/", 1, 0);
-		if (!possible_paths[i])
+		temp = ft_strjoin(possible_paths[i], "/", 1, 0);
+		if (!temp)
 			return (malloc_error(), NULL);
+		possible_paths[i] = temp;
 		i++;
 	}
 	return (possible_paths);
@@ -126,7 +129,7 @@ void	exec_cmd(char *str, char **env)
 void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 {
 	close(data.current_pipe[0]);
-	if (n_cmd == 0)
+	if (n_cmd == 0 && data.hdoc == 0)
 	{
 		data.in_fd = open(data.infile, O_RDONLY);
 		if (data.in_fd == OPEN_FAILURE)
@@ -137,7 +140,10 @@ void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 	if (n_cmd == data.n_argcmd - 2)
 	{
 		close(data.current_pipe[1]);
-		data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (!data.hdoc)
+			data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		else
+			data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_APPEND, 0644);
 		if (data.out_fd == OPEN_FAILURE)
 			perror("open");
 	}
@@ -150,11 +156,51 @@ void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 	exec_cmd(argv, env);
 }
 
+void	here_doc_process(t_pipex *data, pid_t *pids)
+{
+	pid_t	pid;
+	char	*s;
+
+	if (!data->hdoc)
+		return ;
+	if (pipe(data->current_pipe) == PIPE_FAILURE)
+		exit_failure("pipe", NULL, pids);
+	pid = fork();
+	if (pid == -1)
+		exit_failure("fork", NULL, pids);
+	if (!pid)
+	{
+		close(data->current_pipe[0]);
+		while (TRUE)
+		{
+			write(1,"pipe heredoc> ", 13);
+			s = get_next_line(0);
+			if (!s)
+				break ;
+			char *str = ft_strjoin(data->infile, "\n", 0, 0);
+			if (ft_strcmp(str, s))
+				write(data->current_pipe[1], s, ft_strlen(s));
+			else
+			{
+				free(s);
+				break ;
+			}
+			free(s);
+		}
+		close(data->current_pipe[1]);
+		exit(EXIT_SUCCESS);
+	}
+	data->last_pipe = data->current_pipe[0];
+	waitpid(pid, NULL, 0);
+	return ;
+}
+
 int	pipex(t_pipex data, char **argv, char **env, int *pids)
 {
 	int	i;
 
 	i = 0;
+	here_doc_process(&data, pids);
 	while (i < data.n_argcmd - 1)
 	{
 		if (pipe(data.current_pipe) == PIPE_FAILURE)
@@ -165,13 +211,12 @@ int	pipex(t_pipex data, char **argv, char **env, int *pids)
 		if (pids[i] == CHILD_PROCESS)
 			(free(pids), child_process(data, argv[i], i, env));
 		close(data.current_pipe[1]);
-		if (i)
+		if (i || data.hdoc)
 			close(data.last_pipe);
 		data.last_pipe = data.current_pipe[0];
 		i++;
 	}
 	close(data.last_pipe);
-	return (0);
 	return (wait_all_pids(pids, i));
 }
 
@@ -182,8 +227,15 @@ int	main(int argc, char **argv, char **env)
 
 	if (argc < 5)
 		return (1);
-	if (strcmp(argv[1], "here_doc"))
-	{;}
+	data.hdoc = 0;
+	if (!ft_strcmp(argv[1], "here_doc"))
+	{
+		if (argc < 6)
+			return (1);
+		data.hdoc = 1;
+		argv++;
+		argc--;
+	}
 	data.infile = argv[1];
 	data.outfile = argv[argc - 1];
 	data.n_argcmd = argc - 2;

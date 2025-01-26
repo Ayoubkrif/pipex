@@ -3,6 +3,11 @@ execve.c
 execve.o
 ft_split.c
 ft_split.o
+get_next_line.c
+get_next_line.h
+get_next_line.o
+get_next_line_utils.c
+get_next_line_utils.o
 infile
 libft
 Makefile
