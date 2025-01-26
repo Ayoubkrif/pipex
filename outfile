@@ -1,1 +1,15 @@
-ls
+a.out
+execve.c
+execve.o
+ft_split.c
+ft_split.o
+infile
+libft
+Makefile
+modifier
+outfile
+pipex
+pipex.c
+pipex.h
+pipex.o
+testdup.c

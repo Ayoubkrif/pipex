@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 12:11:14 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/25 20:06:22 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/26 12:24:58 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "pipex.h"
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 static void	fall(char **dest)
@@ -170,6 +171,7 @@ int	pipex(t_pipex data, char **argv, char **env, int *pids)
 		i++;
 	}
 	close(data.last_pipe);
+	return (0);
 	return (wait_all_pids(pids, i));
 }
 
@@ -180,6 +182,8 @@ int	main(int argc, char **argv, char **env)
 
 	if (argc < 5)
 		return (1);
+	if (strcmp(argv[1], "here_doc"))
+	{;}
 	data.infile = argv[1];
 	data.outfile = argv[argc - 1];
 	data.n_argcmd = argc - 2;
