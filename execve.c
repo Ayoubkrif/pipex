@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/17 12:11:14 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/26 22:44:39 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/27 14:24:51 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,7 @@ int	wait_all_pids(pid_t	*pids, int n)
 	i = 0;
 	while (i < n)
 	{
+		printf("waiting process %d \n", pids[i]);
 		waitpid(pids[i], &status, 0);
 		i++;
 	}
@@ -137,13 +138,10 @@ void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 	}
 	else
 		data.in_fd = data.last_pipe;
-	if (n_cmd == data.n_argcmd - 2)
+	if (n_cmd == data.n_argcmd - 1)
 	{
 		close(data.current_pipe[1]);
-		if (!data.hdoc)
-			data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-		else
-			data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_APPEND, 0644);
+		data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 		if (data.out_fd == OPEN_FAILURE)
 			perror("open");
 	}
@@ -154,6 +152,18 @@ void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 	close(data.in_fd);
 	close(data.out_fd);
 	exec_cmd(argv, env);
+}
+
+int	strcmp_end_newline(char *s1, char *s2)
+{
+	while (*s1 == *s2 && *s1)
+	{
+		s1++;
+		s2++;
+	}
+	if (*s1 == '\n' || *s2 == 0)
+		return (1);
+	return (0);
 }
 
 void	here_doc_process(t_pipex *data, pid_t *pids)
@@ -170,29 +180,28 @@ void	here_doc_process(t_pipex *data, pid_t *pids)
 		exit_failure("fork", NULL, pids);
 	if (!pid)
 	{
+		free(pids);
 		close(data->current_pipe[0]);
 		while (TRUE)
 		{
-			write(1,"pipe heredoc> ", 13);
+			write(1,"pipe heredoc> ", 14);
 			s = get_next_line(0);
 			if (!s)
 				break ;
-			char *str = ft_strjoin(data->infile, "\n", 0, 0);
-			if (ft_strcmp(str, s))
-				write(data->current_pipe[1], s, ft_strlen(s));
-			else
+			if (strcmp_end_newline(s, data->infile))
 			{
 				free(s);
 				break ;
 			}
+			write(data->current_pipe[1], s, ft_strlen(s));
 			free(s);
 		}
 		close(data->current_pipe[1]);
 		exit(EXIT_SUCCESS);
 	}
+	close(data->current_pipe[1]);
 	data->last_pipe = data->current_pipe[0];
 	waitpid(pid, NULL, 0);
-	return ;
 }
 
 int	pipex(t_pipex data, char **argv, char **env, int *pids)
@@ -201,7 +210,7 @@ int	pipex(t_pipex data, char **argv, char **env, int *pids)
 
 	i = 0;
 	here_doc_process(&data, pids);
-	while (i < data.n_argcmd - 1)
+	while (i < data.n_argcmd)
 	{
 		if (pipe(data.current_pipe) == PIPE_FAILURE)
 			exit_failure("pipe", NULL, pids);
@@ -238,8 +247,9 @@ int	main(int argc, char **argv, char **env)
 	}
 	data.infile = argv[1];
 	data.outfile = argv[argc - 1];
-	data.n_argcmd = argc - 2;
-	pids = malloc((argc - 2) * sizeof(pid_t));
+	data.n_argcmd = argc - 3;
+	printf("il ya %d commande\n", data.n_argcmd);
+	pids = malloc((data.n_argcmd) * sizeof(pid_t));
 	argv++;
 	argv++;
 	return (pipex(data, argv, env, pids));

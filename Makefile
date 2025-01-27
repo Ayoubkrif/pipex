@@ -24,7 +24,7 @@ test: all
 	rm -f outfile
 	cat > infile
 	@./pipex infile \
-	"sleep 10" "sleep 5" "ls" ""\
+	"sleep 10" "sleep 5" "ls" \
 	outfile
 	cat outfile
 	echo $$?
