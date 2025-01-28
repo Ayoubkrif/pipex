@@ -6,22 +6,22 @@
 /*   By: ayoub <ayoub@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/11/02 14:43:22 by ayoub             #+#    #+#             */
-/*   Updated: 2024/11/14 07:39:36 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 10:28:34 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "libft.h"
 
-void	ft_lstadd_front(t_list **lst, t_list *new)
+void	ft_lstadd_front(t_list **lst, t_list *newnode)
 {
-	if (!new)
+	if (!newnode)
 		return ;
 	if (!(*lst))
 	{
-		new->next = NULL;
-		*lst = new;
+		newnode->next = NULL;
+		*lst = newnode;
 		return ;
 	}
-	new->next = *lst;
-	*lst = new;
+	newnode->next = *lst;
+	*lst = newnode;
 }

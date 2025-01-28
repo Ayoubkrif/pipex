@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = #-Wall -Wextra -Werror
 LIBFT = libft.a  # Si vous avez une libft
 
-SRCS = execve.c get_next_line.c get_next_line_utils.c
+SRCS = pipex.c pipex_utils.c get_cmd.c here_doc.c
 OBJS = $(SRCS:.c=.o)
 
 all: libft $(NAME)

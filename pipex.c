@@ -1,111 +1,99 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <stdio.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   pipex.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/01/17 12:11:14 by aykrifa           #+#    #+#             */
+/*   Updated: 2025/01/28 10:12:52 by aykrifa          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "libft/libft.h"
+#include "pipex.h"
 
-void    execute_cmd(char *cmd, char **envp)
+void	exec_cmd(char *str, char **env)
 {
-	char **split = ft_split(cmd, ' ');
-    execve(split[0], split, envp);      // exécute la commande avec l'environnement
-    perror("execve");             // en cas d'erreur
-    exit(EXIT_FAILURE);
+	char	**cmd;
+
+	cmd = get_cmd(str, env);
+	execve(*cmd, cmd, env);
+	exit_failure("execve", cmd, NULL);
 }
 
-void    pipex(char *file1, char *cmd1, char *cmd2, char *file2, char **envp)
+void	child_process(t_pipex data, char *argv, int n_cmd, char **env)
 {
-    int fd[2];
-    pid_t pid1, pid2;
-    int in_fd, out_fd;
-
-    // Ouvrir le fichier d'entrée
-    in_fd = open(file1, O_RDONLY);
-    if (in_fd == -1)
-    {
-        perror("open file1");
-        exit(EXIT_FAILURE);
-    }
-    // Ouvrir le fichier de sortie
-    out_fd = open(file2, O_WRONLY + O_CREAT + O_TRUNC, 03154);
-    if (out_fd == -1)
-    {
-        perror("open file2");
-        exit(EXIT_FAILURE);
-    }
-
-    // Créer un pipe
-    if (pipe(fd) == -1)
-    {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
-
-    // Fork le premier processus (cmd1)
-    pid1 = fork();
-    if (pid1 == -1)
-    {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid1 == 0)  // Processus fils 1
-    {
-        // Rediriger l'entrée de cmd1 depuis file1
-        dup2(in_fd, STDIN_FILENO);
-        close(in_fd);
-        
-        // Rediriger la sortie de cmd1 vers le pipe
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[0]);
-        close(fd[1]);
-        
-        // Exécuter cmd1 avec l'environnement
-        execute_cmd(cmd1, envp);
-    }
-
-    // Fork le deuxième processus (cmd2)
-    pid2 = fork();
-    if (pid2 == -1)
-    {
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }
-
-    if (pid2 == 0)  // Processus fils 2
-    {
-        // Rediriger l'entrée de cmd2 depuis le pipe
-        dup2(fd[0], STDIN_FILENO);
-        close(fd[1]);
-        
-        // Rediriger la sortie de cmd2 vers file2
-        dup2(out_fd, STDOUT_FILENO);
-        close(fd[0]);
-        close(out_fd);
-        
-        // Exécuter cmd2 avec l'environnement
-        execute_cmd(cmd2, envp);
-    }
-
-    // Fermer les descripteurs de fichiers
-    close(in_fd);
-    close(out_fd);
-    close(fd[0]);
-    close(fd[1]);
-
-    // Attendre les processus fils
-    waitpid(pid1, NULL, 0);
-    waitpid(pid2, NULL, 0);
+	close(data.current_pipe[0]);
+	if (n_cmd == 0 && data.hdoc == 0)
+	{
+		data.in_fd = open(data.infile, O_RDONLY);
+		if (data.in_fd == OPEN_FAILURE)
+			perror("open");
+	}
+	else
+		data.in_fd = data.last_pipe;
+	if (n_cmd == data.n_argcmd - 1)
+	{
+		close(data.current_pipe[1]);
+		data.out_fd = open(data.outfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (data.out_fd == OPEN_FAILURE)
+			perror("open");
+	}
+	else
+		data.out_fd = data.current_pipe[1];
+	dup2(data.in_fd, STDIN_FILENO);
+	dup2(data.out_fd, STDOUT_FILENO);
+	close(data.in_fd);
+	close(data.out_fd);
+	exec_cmd(argv, env);
 }
 
-int main(int argc, char **argv, char **envp)
+int	pipex(t_pipex data, char **argv, char **env, int *pids)
 {
-    if (argc != 5)
-    {
-        write(2, "Usage: ./pipex file1 cmd1 cmd2 file2\n", 36);
-        return (1);
-    }
-    pipex(argv[1], argv[2], argv[3], argv[4], envp);
-    return (0);
+	int	i;
+
+	i = 0;
+	here_doc_process(&data, pids);
+	while (i < data.n_argcmd)
+	{
+		if (pipe(data.current_pipe) == PIPE_FAILURE)
+			exit_failure("pipe", NULL, pids);
+		pids[i] = fork();
+		if (pids[i] == FORK_FAILURE)
+			exit_failure("fork", NULL, pids);
+		if (pids[i] == CHILD_PROCESS)
+			(free(pids), child_process(data, argv[i], i, env));
+		close(data.current_pipe[1]);
+		if (i || data.hdoc)
+			close(data.last_pipe);
+		data.last_pipe = data.current_pipe[0];
+		i++;
+	}
+	close(data.last_pipe);
+	return (wait_all_pids(pids, i));
+}
+
+int	main(int argc, char **argv, char **env)
+{
+	t_pipex	data;
+	pid_t	*pids;
+
+	if (argc < 5)
+		return (1);
+	data.hdoc = 0;
+	if (!ft_strcmp(argv[1], "here_doc"))
+	{
+		if (argc < 6)
+			return (1);
+		data.hdoc = 1;
+		argv++;
+		argc--;
+	}
+	data.infile = argv[1];
+	data.outfile = argv[argc - 1];
+	data.n_argcmd = argc - 3;
+	pids = malloc((data.n_argcmd) * sizeof(pid_t));
+	argv = argv + 2;
+	return (pipex(data, argv, env, pids));
 }
