@@ -6,12 +6,11 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/29 23:57:42 by ayoub             #+#    #+#             */
-/*   Updated: 2024/11/13 07:53:34 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 16:15:35 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-//#include "libft.h"
-#include<string.h>
+#include "libft.h"
 
 int	ft_memcmp(const void *s1, const void *s2, size_t n)
 {

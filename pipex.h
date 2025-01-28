@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/28 10:04:06 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/28 10:13:16 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 17:41:33 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,18 +21,13 @@
 # include <sys/types.h>
 # include "libft/libft.h"
 # include "libft/get_next_line.h"
-
-typedef struct s_hdoc
-{
-	char	*limiter;
-	int		hdoc_pipe[2];
-}	t_hdoc;
+# include "stdio.h"
 
 typedef struct s_pipex
 {
 	char			*infile;
 	char			*outfile;
-	int				hdoc;
+	int				here_doc;
 	int				current_pipe[2];
 	int				last_pipe;
 	int				in_fd;
@@ -46,7 +41,7 @@ typedef struct s_pipex
 # define CHILD_PROCESS 0
 
 void	fall(char **dest);
-void	exit_failure(char *message, char **to_free, int *pids_to_free);
+void	exit_failure(char *message);
 int		wait_all_pids(pid_t	*pids, int n);
 void	malloc_error(void);
 

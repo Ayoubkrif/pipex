@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/28 10:02:36 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/28 10:05:57 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 17:41:21 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,11 +27,9 @@ void	fall(char **dest)
 	free(dest);
 }
 
-void	exit_failure(char *message, char **to_free, int *pids_to_free)
+void	exit_failure(char *message)
 {
 	perror(message);
-	fall(to_free);
-	free(pids_to_free);
 	exit(EXIT_FAILURE);
 }
 
@@ -52,5 +50,5 @@ int	wait_all_pids(pid_t	*pids, int n)
 
 void	malloc_error(void)
 {
-	printf("malloc error\n");
+	write(2, "malloc error\n", 13);
 }

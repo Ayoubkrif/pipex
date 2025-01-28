@@ -6,7 +6,7 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/28 10:08:48 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/28 10:09:00 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 11:34:35 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,23 +37,17 @@ char	**get_possible_paths(char **env)
 	return (possible_paths);
 }
 
-char	**get_cmd(char *str, char **env)
+char	**access_cmd(char	**path, char **cmd)
 {
-	char	**cmd;
-	char	*ret;
-	char	**path;
 	int		i;
+	char	*ret;
 
 	i = 0;
-	cmd = ft_split(str, ' ');
-	path = get_possible_paths(env);
-	if (!path || !cmd)
-		return (fall(path), fall(cmd), NULL);
-	if (!access(*cmd, X_OK))
-		return (fall(path), cmd);
 	while (path[i])
 	{
 		ret = ft_strjoin(path[i], *cmd, 0, 0);
+		if (!ret)
+			return (malloc_error(), fall(cmd), NULL);
 		if (!access(ret, X_OK))
 		{
 			free(*cmd);
@@ -63,7 +57,26 @@ char	**get_cmd(char *str, char **env)
 		free(ret);
 		i++;
 	}
-	(fall(path), path = NULL);
-	exit_failure("access", cmd, NULL);
+	fall(cmd);
+	return (NULL);
+}
+
+char	**get_cmd(char *str, char **env)
+{
+	char	**cmd;
+	char	**path;
+
+	cmd = ft_split(str, ' ');
+	if (!cmd)
+		return (malloc_error(), NULL);
+	path = get_possible_paths(env);
+	if (!path)
+		return (fall(cmd), NULL);
+	if (!access(*cmd, X_OK))
+		return (fall(path), cmd);
+	cmd = access_cmd(path, cmd);
+	if (cmd)
+		return (cmd);
+	fall(path);
 	return (NULL);
 }

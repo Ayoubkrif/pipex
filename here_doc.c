@@ -6,11 +6,12 @@
 /*   By: aykrifa <aykrifa@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/01/28 10:11:04 by aykrifa           #+#    #+#             */
-/*   Updated: 2025/01/28 10:11:14 by aykrifa          ###   ########.fr       */
+/*   Updated: 2025/01/28 17:43:09 by aykrifa          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
+#include <stdlib.h>
 
 int	strcmp_end_newline(char *s1, char *s2)
 {
@@ -44,24 +45,32 @@ void	prompt_here_doc(t_pipex *data)
 		free(s);
 	}
 	close(data->current_pipe[1]);
+	exit(EXIT_SUCCESS);
 }
 
 void	here_doc_process(t_pipex *data, pid_t *pids)
 {
 	pid_t	pid;
 
-	if (!data->hdoc)
+	if (data->here_doc == 0)
 		return ;
 	if (pipe(data->current_pipe) == PIPE_FAILURE)
-		exit_failure("pipe", NULL, pids);
+	{
+		free(pids);
+		exit_failure("pipe");
+	}
 	pid = fork();
-	if (pid == -1)
-		exit_failure("fork", NULL, pids);
-	if (!pid)
+	if (pid == FORK_FAILURE)
+	{
+		free(pids);
+		close(data->current_pipe[0]);
+		close(data->current_pipe[1]);
+		exit_failure("fork");
+	}
+	if (pid == CHILD_PROCESS)
 	{
 		free(pids);
 		prompt_here_doc(data);
-		exit(EXIT_SUCCESS);
 	}
 	close(data->current_pipe[1]);
 	data->last_pipe = data->current_pipe[0];
